@@ -29,7 +29,7 @@ test_df=test_df%>%inner_join(select(Op_data,FIPS,`Opioid Prescribing Rate`,Year)
   rename(OPR=`Opioid Prescribing Rate`)
 
 #Test Sequence
-dist_seq=seq(20,200,by=5)
+dist_seq=seq(20,200,by=20)
 year_seq=2013:2017
 
 
@@ -62,16 +62,30 @@ ggplot(data = result_df,aes(x=Dmax,y=MoranI,color=as.factor(Year)))+geom_line()+
 #Compare with other Implementation of Moran's I 
 temp_df=test_df[test_df$Year==year_seq[1],]
 
-inv.dist=(distance_matrix(temp_df$fips,temp_df$lon,temp_df$lat))^(-1)
-diag(inv.dist)<-0
 
-ape::Moran.I(temp_df$OPR,inv.dist)
 
-dd=distance_matrix(temp_df$fips,temp_df$lon,temp_df$lat)
+dist.mat=distance_matrix(temp_df$fips,temp_df$lon,temp_df$lat)
+w_mat=weight_distance_matrix(dist.mat,3000)
+
+quantile(dist.mat)
+
+ape::Moran.I(temp_df$OPR,w_mat)
+
+moranI(temp_df$OPR,w_mat,scaling = FALSE)
+
+dist_seq=seq(20,800,by=10)
+year_seq=2013:2014
 
 tic()
-a=moranI(temp_df$fips,temp_df$lon,temp_df$lat,temp_df$OPR,3000)
+test=moran_time_dist(test_df$OPR,test_df$Year,dist.mat,dist_seq,year_seq)
 toc()
+
+moran_time_dist(test_df$OPR,test_df$Year,dist.mat,dist_seq,2013)
+
+ggplot(data=test,aes(x=distance,y=MoransI,color=as.factor(year)))+geom_line(size=2)+
+  theme_bw()+
+  labs(y="Moran's I",color="Year",title="Opioid Prescribing Rate vs Distance")
+
 #Misc--------
 
 #county_data$count_code=paste(county_data$county,county_data$state,sep="-")
