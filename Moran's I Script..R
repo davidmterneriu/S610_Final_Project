@@ -5,6 +5,8 @@ library(readr)
 library(ggplot2)
 library(tidyverse)
 library(readxl)
+library(ape)
+library(tictoc)
 library(housingData)
 source("Distance Data Script.R")
 
@@ -17,10 +19,11 @@ Op_data$FIPS=as.character(Op_data$FIPS)
 #Test Data
 #test_df=county_data[1:200,]
 
-sample_count=200
+#sample_count=200
 
-test_df=sample_n(county_data, 200)
+#test_df=sample_n(county_data, 3075)
 #test_df=county_data[county_data$state=="NY",]
+test_df=county_data
 
 test_df=test_df%>%inner_join(select(Op_data,FIPS,`Opioid Prescribing Rate`,Year),by=c("fips"="FIPS"))%>%
   rename(OPR=`Opioid Prescribing Rate`)
@@ -28,6 +31,10 @@ test_df=test_df%>%inner_join(select(Op_data,FIPS,`Opioid Prescribing Rate`,Year)
 #Test Sequence
 dist_seq=seq(20,200,by=5)
 year_seq=2013:2017
+
+
+
+
 
 m_length=length(dist_seq)*length(year_seq)
 
@@ -51,6 +58,20 @@ ggplot(data = result_df,aes(x=Dmax,y=MoranI,color=as.factor(Year)))+geom_line()+
   labs(x="Distance",y="Moran's I",color="Year",title="Random Sample")
 
 
+
+#Compare with other Implementation of Moran's I 
+temp_df=test_df[test_df$Year==year_seq[1],]
+
+inv.dist=(distance_matrix(temp_df$fips,temp_df$lon,temp_df$lat))^(-1)
+diag(inv.dist)<-0
+
+ape::Moran.I(temp_df$OPR,inv.dist)
+
+dd=distance_matrix(temp_df$fips,temp_df$lon,temp_df$lat)
+
+tic()
+a=moranI(temp_df$fips,temp_df$lon,temp_df$lat,temp_df$OPR,3000)
+toc()
 #Misc--------
 
 #county_data$count_code=paste(county_data$county,county_data$state,sep="-")
