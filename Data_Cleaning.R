@@ -8,6 +8,10 @@ library(readxl)
 library(ape)
 library(tictoc)
 library(housingData)
+library(maps)
+library(socviz)
+library(urbnmapr)
+library(viridisLite)
 source("Distance Data Script.R")
 
 #Last library has median geographical coordinates of centroids of U.S. counties
@@ -49,28 +53,95 @@ write_csv(test_df_un,"test_data_unemployment.csv")
 
 #Cleaning Map Data 
 #devtools::install_github("UrbanInstitute/urbnmapr")
-#library(urbnmapr)
-#library(viridisLite)
+library(urbnmapr)
+library(viridisLite)
 
 #US_cont=urbnmapr::states
 #Remove Alaska and Hawaii
 #rem_states=c("Alaska","Hawaii")
 #US_cont=US_cont[US_cont$state_name %in% rem_states==FALSE,]
 
+quantile(test_data$localMoran)
 
-#test_data <- read_csv("test_data.csv")
-#test_county=counties
-#test_county$fips=gsub("^[0]+","",test_county$county_fips)%>%as.numeric()
+hist(test_data$localMoran)
+
+test_data <- read_csv("lMoran2013.csv")
+test_data=test_data[,-1]
+test_county=counties
+test_county$fips=gsub("^[0]+","",test_county$county_fips)%>%as.numeric()
 
 #test_data2013=test_data[test_data$Year==2013,]
 
-#map2013=test_data2013%>%inner_join(test_county,by=c("fips"))
+map2013=test_data %>%merge(test_county,by=c("fips"),all = TRUE)
 
 
-#map2013 %>%
-#  ggplot(aes(long, lat.y, group = group, fill = OPR)) +
-#  geom_polygon(color = NA) +
-#  coord_map(projection = "albers", lat0 = 39, lat1 = 45) +
-#  labs(fill = "Opioid Prescription Rate 2013")+
-#  scale_fill_viridis_c( na.value = "black10")
+g1=map2013 %>%
+  ggplot(aes(long, lat, group = group, fill = localMoran)) +
+  geom_polygon(color = NA) +
+  coord_map(projection = "albers", lat0 = 39, lat1 = 45) +
+  labs(fill = "localMoran 2013")+
+  scale_fill_viridis_c( na.value = "grey")
   #scale_fill_gradient2(low=scales::muted("blue"),mid="white",high=scales::muted("red"),na.value = "grey50")
+
+
+#Better Maps 
+library(maps)
+library(socviz)
+us_states <- map_data("state")
+
+p <- ggplot(data = us_states,
+            mapping = aes(x = long, y = lat,
+                          group = group, fill = region))
+
+p + geom_polygon(color = "gray90", size = 0.1) +
+  coord_map(projection = "albers", lat0 = 39, lat1 = 45) +
+  guides(fill = FALSE)
+
+typeof(county_map$id)
+
+
+test_data <- read_csv("lMoran2013.csv")
+test_data=test_data[,-1]
+test_data$fips=test_data$fips%>%as.character()
+test_data$localMoran=ifelse(abs(test_data$localMoran)<=20,test_data$localMoran,NA)
+county_map1=county_map
+county_map1$id=gsub("^[0]+","",county_map1$id)%>%as.character()
+county_full <- left_join(county_map1, test_data, by = c("id"="fips"))
+
+p <- ggplot(data = county_full,
+            mapping = aes(x = long, y = lat,
+                          fill = localMoran, 
+                          group = group))
+
+p1 <- p + geom_polygon(color = "white", size = 0.05) + coord_equal()+ggthemes::theme_map()+
+  scale_fill_viridis_c()+labs(title = "Local Moran I: 2013",subtitle = "Abs Local Moran I < 20")
+p1
+
+plotly::ggplotly(p1)
+
+
+# Other data 
+
+test_data <- read_csv("test_data.csv")
+test_data$fips=test_data$fips%>%as.character()
+test_data=test_data[test_data$Year==2013,]
+
+county_map1=county_map
+county_map1$id=gsub("^[0]+","",county_map1$id)%>%as.character()
+
+county_full <- left_join(county_map1, test_data, by = c("id"="fips"))
+p <- ggplot(data = county_full,
+            mapping = aes(x = long, y = lat.x,
+                          fill = OPR, 
+                          group = group,label=county))+geom_polygon(color = "white", size = 0.05)
+
+p1 <- p + geom_polygon(color = "white", size = 0.05) + coord_equal()+ggthemes::theme_map()+
+  scale_fill_viridis_c()+labs(title = "Opioid Prescription Rates: 2013")
+
+p1
+
+
+ggplot(data = county_full,
+       mapping = aes(x = long, y = lat.x,
+                     fill = OPR, 
+                     group = group))+geom_polygon(color = "white", size = 0.05)
