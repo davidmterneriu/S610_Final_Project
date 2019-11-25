@@ -100,7 +100,7 @@ moranI=function(y,w_mat,scaling=FALSE,p.test="two.sided"){
   #INPUTS:
   #y: variable of interest
   #weight_max: square distance adjusted weight matrix 
-  #scaling: default to FALSE; if TRUE, moran's I should fall between [-1,1]
+  #scaling: default to FALSE; if TRUE, distance-weights sum to unity
   #OUTPUT: 
   #moran: moran's I (e.g. distance weighted correlation)
   #p.value: one-sided p-value
@@ -190,4 +190,60 @@ MoranI_pop=function(y,pop,dist_mat,dist_seq,lambda){
   }
 }
 
+
+LocalMoran=function(y,dist_mat,dmax,scaling=FALSE,p.test="two.sided"){
+  #INPUTS:
+  #y: a column vector with data to be spatially-correlated 
+  #dist_mat: distance matrix
+  #dmax: size of distance band 
+  #scaling: default to FALSE; if TRUE, distance-weights sum to unity
+  
+  #Checks that each geography i has at least 2 neighbors
+  dmax_true=apply(dist_mat,1,FUN =Rfast::nth,3,descending = F )%>%max()%>%
+    round(0)
+  
+  if(dmax_true>dmax){
+    ms=paste("dmax is too small. Choose dmax greater than:",dmax_true,sep=" ")
+    return(message(ms))}
+  w_mat=weight_distance_matrix(dist_mat,dmax)
+  n=length(y)
+  moran=numeric(n)
+  pstore=numeric(n)
+
+  for (i in 1:n){
+    #Need a way to make sure that averaged y only takes into account i's dmax determined neighbors 
+    y_ind=which(w_mat[i,]>0)
+    ytemp=y[c(i,y_ind)]
+    mean_y=mean(ytemp)
+    y_dmean=y-mean(y)
+    y_dmean[-y_ind]<-0
+  if(scaling){
+    rsum=apply(w_mat,1,sum)
+    rsum[rsum==0]<-1
+    weight=w_mat/rsum
+  }else{
+    weight=w_mat
+  }
+  #Adjusting for zero weighted observations
+    N=sum(weight[i,]>0)+1
+    SI2=sum(weight[,-i])/(N-1)-(mean_y)^2
+    Im=(y[i]-mean_y)/SI2*(sum(weight[,-i]*y_dmean[-i]))
+    moran[i]=Im
+  #Getting p.values 
+    EI=-1*(sum(weight[,-i]))/N
+    b2=N*(sum((y_dmean[-i])^4))/((sum((y_dmean[-i])^2))^2)
+    C=sum(weight[,-i]%o%weight[-i,])
+    VI=(N-b2)*sum(weight[,-i])/(N-1)-(2*b2-N)*C/((N-1)*(N-2))-(EI)^2
+    sdV=sqrt(VI)
+    p.value=pnorm(Im,mean=EI,sd=sdV)
+    if(p.test=="two.sided"){
+      p.value=ifelse(Im<=EI,2*p.value,2*(1-p.value))
+    }else{
+      p.value=1-p.value
+    }
+    pstore[i]=p.value
+  }
+  result=list(moranI=moran,p.value=pstore)
+  return(result)
+}
 

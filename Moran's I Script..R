@@ -77,6 +77,13 @@ temp_df=test_df[test_df$Year==year_seq[1],]
 
 dis.mat=distance_matrix(test_df$fips,test_df$lon,test_df$lat)
 
+
+
+a=apply(dis.mat,1,FUN =Rfast::nth,2,descending = F )
+hist(a)
+
+max(a)
+
 #dist_seq=seq(25,30,by=5)
 #moran_time_dist(test_df$OPR,test_df$Year,dis.mat,dist_seq,2015)
 
