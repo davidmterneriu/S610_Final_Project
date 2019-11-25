@@ -28,6 +28,18 @@ test_df=county_data
 test_df=test_df%>%inner_join(select(Op_data,FIPS,`Opioid Prescribing Rate`,Year),by=c("fips"="FIPS"))%>%
   rename(OPR=`Opioid Prescribing Rate`)
 
+test_df=test_df[order(test_df$Year),]
+
+#table(test_df$Year)
+#Need to make sure that each year has the same counties
+
+fips_count=table(test_df$fips)%>%as.data.frame()
+fips_count=fips_count$Var1[fips_count$Freq==5]%>%as.character()
+
+test_df=test_df[test_df$fips%in%fips_count,]
+
+
+
 #Test Sequence
 dist_seq=seq(20,200,by=20)
 year_seq=2013:2017
@@ -63,28 +75,40 @@ ggplot(data = result_df,aes(x=Dmax,y=MoranI,color=as.factor(Year)))+geom_line()+
 temp_df=test_df[test_df$Year==year_seq[1],]
 
 
+dis.mat=distance_matrix(test_df$fips,test_df$lon,test_df$lat)
 
-dist.mat=distance_matrix(temp_df$fips,temp_df$lon,temp_df$lat)
-w_mat=weight_distance_matrix(dist.mat,3000)
+#dist_seq=seq(25,30,by=5)
+#moran_time_dist(test_df$OPR,test_df$Year,dis.mat,dist_seq,2015)
+
+#dist.mat=distance_matrix(temp_df$fips,temp_df$lon,temp_df$lat)
+w_mat=weight_distance_matrix(dist.mat,20)
 
 quantile(dist.mat)
 
 ape::Moran.I(temp_df$OPR,w_mat)
 
-moranI(temp_df$OPR,w_mat,scaling = FALSE)
+moranI(temp_df$OPR,w_mat,scaling = TRUE)
 
-dist_seq=seq(20,800,by=10)
-year_seq=2013:2014
+dist_seq=seq(25,2800,by=25)
+year_seq=2013:2017
 
 tic()
-test=moran_time_dist(test_df$OPR,test_df$Year,dist.mat,dist_seq,year_seq)
+test=moran_time_dist(test_df$OPR,test_df$Year,dis.mat,dist_seq,year_seq)
 toc()
+#Takes 980.833 seconds to run with all years 
+#1114.28 after obs count adjustments are made
+write_csv(test,"moran_data_2013-7_v2.csv")
 
-moran_time_dist(test_df$OPR,test_df$Year,dist.mat,dist_seq,2013)
 
-ggplot(data=test,aes(x=distance,y=MoransI,color=as.factor(year)))+geom_line(size=2)+
+g1=ggplot(data=test,aes(x=distance,y=MoransI,color=as.factor(year)))+geom_line(size=1)+
   theme_bw()+
   labs(y="Moran's I",color="Year",title="Opioid Prescribing Rate vs Distance")
+
+#plotly::ggplotly(g1)
+
+
+
+
 
 #Misc--------
 

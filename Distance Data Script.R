@@ -78,7 +78,9 @@ moranI=function(y,w_mat,scaling=FALSE,p.test="two.sided"){
     weight=w_mat
   }
   W=sum(weight)
-  N=length(y)
+  #Adjusting for zero weighted observations
+  A=sum(weight>0)/2
+  N=min(length(y),A)
   y_dmean=y-mean(y)
   C=sum(weight*y_dmean %o%y_dmean)
   v=sum(y_dmean^2)
@@ -121,7 +123,7 @@ moran_time_dist=function(y,y_years,dist_mat,dist_seq,years){
     ytemp=y[y_years==years[i]]
     for(j in 1:m){
       w_mat=weight_distance_matrix(dist_mat,dist_seq[j])
-      test_m=moranI(ytemp,w_mat)
+      test_m=moranI(ytemp,w_mat,scaling = TRUE)
       result_df[counter,1]=test_m[[1]]
       result_df[counter,2]=test_m[[2]]
       result_df[counter,3]=years[i]
