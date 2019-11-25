@@ -43,5 +43,34 @@ test_df=test_df%>%inner_join(UScounty_pop_data,by=c("county"="CTYNAME","state"="
 test_df_un=test_df%>%inner_join(unemployment_data,by=c("fips","Year"))
 
 #Saving data
-write_csv2(test_df,"test_data.csv")
-write_csv2(test_df_un,"test_data_unemployment.csv")
+write_csv(test_df,"test_data.csv")
+write_csv(test_df_un,"test_data_unemployment.csv")
+
+
+#Cleaning Map Data 
+#devtools::install_github("UrbanInstitute/urbnmapr")
+#library(urbnmapr)
+#library(viridisLite)
+
+#US_cont=urbnmapr::states
+#Remove Alaska and Hawaii
+#rem_states=c("Alaska","Hawaii")
+#US_cont=US_cont[US_cont$state_name %in% rem_states==FALSE,]
+
+
+#test_data <- read_csv("test_data.csv")
+#test_county=counties
+#test_county$fips=gsub("^[0]+","",test_county$county_fips)%>%as.numeric()
+
+#test_data2013=test_data[test_data$Year==2013,]
+
+#map2013=test_data2013%>%inner_join(test_county,by=c("fips"))
+
+
+#map2013 %>%
+#  ggplot(aes(long, lat.y, group = group, fill = OPR)) +
+#  geom_polygon(color = NA) +
+#  coord_map(projection = "albers", lat0 = 39, lat1 = 45) +
+#  labs(fill = "Opioid Prescription Rate 2013")+
+#  scale_fill_viridis_c( na.value = "black10")
+  #scale_fill_gradient2(low=scales::muted("blue"),mid="white",high=scales::muted("red"),na.value = "grey50")

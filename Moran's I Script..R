@@ -79,10 +79,12 @@ dis.mat=distance_matrix(test_df$fips,test_df$lon,test_df$lat)
 
 
 
-a=apply(dis.mat,1,FUN =Rfast::nth,2,descending = F )
+a=apply(dis.mat,1,FUN =Rfast::nth,2,descending = F )%>%max()
 hist(a)
 
-max(a)
+
+
+
 
 #dist_seq=seq(25,30,by=5)
 #moran_time_dist(test_df$OPR,test_df$Year,dis.mat,dist_seq,2015)
@@ -155,6 +157,11 @@ g1=ggplot(data=test,aes(x=distance,y=MoransI,color=as.factor(year)))+geom_line(s
 source("Distance Data Script.R") 
 
 #Testing weight_distance_matrix
+
+
+
+
+
 A <- matrix(rnorm(25,10,5), 5, 5)
 A=A%*% t(A)
 diag(A)<-0
@@ -165,3 +172,5 @@ dmax=max(A)
 lambda=quantile(popA,.8)%>%as.numeric()
 
 weight_distance_matrix(A,dmax=dmax,pop=popA,lambda,"population")
+
+LocalMoran(popA,A,358)
