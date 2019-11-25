@@ -5,7 +5,8 @@ library(readr)
 library(ggplot2)
 library(tidyverse)
 library(readxl)
-library(housingData)
+#Used for fast sorting 
+library(doBy)
 
 gcd.hf <- function(long1, lat1, long2, lat2) {
   #closely following: https://www.r-bloggers.com/great-circle-distance-calculations-in-r/
@@ -51,13 +52,45 @@ distance_matrix=function(geo,long,lat){
   return(myMat)
 }
 
-weight_distance_matrix=function(dist_mat,dmax,options="none for now"){
-  #dmax: max distance 
-  w_mat=dist_mat^(-1)
-  diag(w_mat) <- 0
-  w_mat[w_mat<(dmax)^(-1)]=0
+weight_distance_matrix=function(dist_mat,dmax,pop,lambda,options="none for now"){
+  #dmax: max distance
+  if (options!="population"){
+    w_mat=dist_mat^(-1)
+    diag(w_mat) <- 0
+    w_mat[w_mat<(dmax)^(-1)]=0}
+  else{
+    #browser()
+    n=length(pop)
+    dis_pop=numeric(n)
+    for (i in 1:n ){
+      region_pop=pop[i]%>%as.numeric()
+      if(region_pop>lambda){
+        k=1
+        dis_pop[i]=k
+      }else{
+          for(j in 2:n){
+          #Looking for closet neighbors/adding their population to region
+          neigh_index=which.minn(dist_mat[i,],j)%>%tail(1)
+          region_pop=region_pop+pop[neigh_index]
+          if (region_pop>lambda | j==n){
+            k=dist_mat[i,neigh_index]
+            break
+          }
+          }
+        k=dist_mat[i,neigh_index] 
+      }
+      dis_pop[i]=k
+    }
+    w_mat=dist_mat
+    w_mat[w_mat>dmax]<-0
+    w_mat=exp(-4*(sweep(w_mat,1,dis_pop, '/')^2))
+    diag(w_mat) <- 0
+  }
   return(w_mat)
 }
+
+
+
 
 
 
@@ -135,6 +168,8 @@ moran_time_dist=function(y,y_years,dist_mat,dist_seq,years){
   colnames(result_df)=c("MoransI","p.value","year","distance")
   return(result_df)
 }
+
+
 
 
 

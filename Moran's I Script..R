@@ -81,7 +81,11 @@ dis.mat=distance_matrix(test_df$fips,test_df$lon,test_df$lat)
 #moran_time_dist(test_df$OPR,test_df$Year,dis.mat,dist_seq,2015)
 
 #dist.mat=distance_matrix(temp_df$fips,temp_df$lon,temp_df$lat)
-w_mat=weight_distance_matrix(dist.mat,20)
+w_mat=weight_distance_matrix(dis.mat,2000)
+
+
+
+
 
 quantile(dist.mat)
 
@@ -97,7 +101,7 @@ test=moran_time_dist(test_df$OPR,test_df$Year,dis.mat,dist_seq,year_seq)
 toc()
 #Takes 980.833 seconds to run with all years 
 #1114.28 after obs count adjustments are made
-write_csv(test,"moran_data_2013-7_v2.csv")
+#write_csv(test,"moran_data_2013-7_v2.csv")
 
 
 g1=ggplot(data=test,aes(x=distance,y=MoransI,color=as.factor(year)))+geom_line(size=1)+
@@ -140,3 +144,17 @@ g1=ggplot(data=test,aes(x=distance,y=MoransI,color=as.factor(year)))+geom_line(s
 
 #hist(county_pairs$distance)
 #quantile(county_pairs$distance,seq(0,1,by=1/10))
+
+source("Distance Data Script.R") 
+
+#Testing weight_distance_matrix
+A <- matrix(rnorm(25,50,5), 5, 5)
+A=A%*% t(A)
+diag(A)<-0
+
+popA=rnorm(5,100,20)
+
+dmax=median(A)
+lambda=quantile(popA,.2)%>%as.numeric()
+
+weight_distance_matrix(A,dmax=dmax,pop=popA,lambda,"population")
