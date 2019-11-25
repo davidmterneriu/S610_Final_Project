@@ -30,15 +30,24 @@ test_df=test_df%>%inner_join(select(Op_data,FIPS,`Opioid Prescribing Rate`,Year)
 
 test_df=test_df[order(test_df$Year),]
 
-#table(test_df$Year)
-#Need to make sure that each year has the same counties
 
+#Need to make sure that each year has the same counties
+#----Computing Local Moran's I for both unemployment and OPR 
+#test_df<- read_csv("test_data.csv")
 fips_count=table(test_df$fips)%>%as.data.frame()
 fips_count=fips_count$Var1[fips_count$Freq==5]%>%as.character()
+year_seq=2013:2017
+temp_df=test_df[test_df$Year==year_seq[1],]
+dis.mat=distance_matrix(temp_df$fips,temp_df$lon,temp_df$lat)
 
-test_df=test_df[test_df$fips%in%fips_count,]
+tic()
+a=LocalMoran(temp_df$OPR,dis.mat,120,scaling=TRUE,p.test="two.sided")
+#2202.172 sec elapsed
+toc()
 
 
+lMoran2013=cbind.data.frame(fips=temp_df$fips,localMoran=a[[1]],p.value=a[[2]],year=2013)
+write.csv(lMoran2013,"lMoran2013.csv")
 
 #Test Sequence
 dist_seq=seq(20,200,by=20)
@@ -118,6 +127,11 @@ g1=ggplot(data=test,aes(x=distance,y=MoransI,color=as.factor(year)))+geom_line(s
   labs(y="Moran's I",color="Year",title="Opioid Prescribing Rate vs Distance")
 
 #plotly::ggplotly(g1)
+
+
+
+
+
 
 
 

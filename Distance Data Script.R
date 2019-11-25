@@ -232,7 +232,7 @@ LocalMoran=function(y,dist_mat,dmax,scaling=FALSE,p.test="two.sided"){
   #Getting p.values 
     EI=-1*(sum(weight[,-i]))/N
     b2=N*(sum((y_dmean[-i])^4))/((sum((y_dmean[-i])^2))^2)
-    C=sum(weight[,-i]%o%weight[-i,])
+    C=sum(weight[,-i]*t(weight[-i,]))
     VI=(N-b2)*sum(weight[,-i])/(N-1)-(2*b2-N)*C/((N-1)*(N-2))-(EI)^2
     sdV=sqrt(VI)
     p.value=pnorm(Im,mean=EI,sd=sdV)
