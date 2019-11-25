@@ -83,8 +83,9 @@ weight_distance_matrix=function(dist_mat,dmax,pop,lambda,options="none for now")
     }
     w_mat=dist_mat
     w_mat[w_mat>dmax]<-0
-    w_mat=exp(-4*(sweep(w_mat,1,dis_pop, '/')^2))
+    w_mat=sweep(w_mat,2,dis_pop, '/')^(-1)
     diag(w_mat) <- 0
+    #w_mat=dis_pop
   }
   return(w_mat)
 }
@@ -171,6 +172,22 @@ moran_time_dist=function(y,y_years,dist_mat,dist_seq,years){
 
 
 
-
+MoranI_pop=function(y,pop,dist_mat,dist_seq,lambda){
+  n=length(lambda)
+  m=length(dist_seq)
+  result_df=matrix(0,n*m,4)
+  counter=1
+  for(i in 1:n){
+    for(j in 1:m){
+      w_mat=weight_distance_matrix(dist_mat,dist_seq[j],pop,lambda[i],options="population")
+      test_m=moranI(y,w_mat,scaling = TRUE)
+      result_df[counter,1]=test_m[[1]]
+      result_df[counter,2]=test_m[[2]]
+      result_df[counter,3]=lambda[i]
+      result_df[counter,4]=dist_seq[j]
+      counter=counter+1
+    }
+  }
+}
 
 

@@ -148,13 +148,13 @@ g1=ggplot(data=test,aes(x=distance,y=MoransI,color=as.factor(year)))+geom_line(s
 source("Distance Data Script.R") 
 
 #Testing weight_distance_matrix
-A <- matrix(rnorm(25,50,5), 5, 5)
+A <- matrix(rnorm(25,10,5), 5, 5)
 A=A%*% t(A)
 diag(A)<-0
 
 popA=rnorm(5,100,20)
 
-dmax=median(A)
-lambda=quantile(popA,.2)%>%as.numeric()
+dmax=max(A)
+lambda=quantile(popA,.8)%>%as.numeric()
 
 weight_distance_matrix(A,dmax=dmax,pop=popA,lambda,"population")
