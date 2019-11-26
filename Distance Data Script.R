@@ -323,11 +323,13 @@ Getis_Ord_local=function(y,dist_mat,dmax,p.test="two.sided"){
   local_G=numeric(n)
   local_Gz=numeric(n)
   local_p=numeric(n)
-  browser()
+  #browser()
   for (i in 1:n){
     ind=w_mat[i,]>0
+    ind[i]<-TRUE
+    ind2=ind==FALSE
     y_temp=y
-    y_temp[ind]<-0
+    y_temp[ind2]<-0
     GI=sum(w_mat[,i]*y_temp)/sum(y_temp)
     WI=sum(w_mat[,i])
     #Adjusting for zero weighted observations

@@ -176,12 +176,12 @@ source("Distance Data Script.R")
 
 
 
-A <- matrix(rnorm(100,10,5), 10, 10)
+A <- matrix(rnorm(100,10,1), 10, 10)
 A=A%*% t(A)
 diag(A)<-0
 
 popA=rnorm(10,100,20)
-popA[1]=10^6
+popA[c(1,10)]=10^(9)
 
 dmax=max(A)
 w_mat=weight_distance_matrix(A,dmax)
