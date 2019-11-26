@@ -247,3 +247,55 @@ LocalMoran=function(y,dist_mat,dmax,scaling=FALSE,p.test="two.sided"){
   return(result)
 }
 
+
+Getis_Ord=function(y,w_mat,p.test="two.sided"){
+  #Variable description-----------------------------------
+  #INPUTS:
+  #y: variable of interest
+  #weight_max: square distance adjusted weight matrix 
+  #OUTPUT: 
+  #General G: A measure of how concentrated high/low values are for a given study area
+  #Spot Type: The difference between G and E[G]; if positive, return hot spot 
+  #           (i.e. high-values cluster togther), o.w. cold spot. 
+  #p.value: one-sided p-value
+  browser()
+  weight=w_mat
+  W=sum(weight)
+  
+  numerator=t(y)%*%weight%*%y%>%as.numeric
+  denom=t(y)%*%y%>%as.numeric
+  
+  #Adjusting for zero weighted observations
+  A=sum(weight>0)/2
+  N=min(length(y),A)
+
+  G=numerator/denom
+ 
+  #Time to get z-value
+  EG=W/(N*(N-1))
+  # Getting Variance 
+  #https://pro.arcgis.com/en/pro-app/tool-reference/spatial-statistics/h-general-g-additional-math.htm
+  
+  S1=1/2*sum((weight+t(weight)^2))
+  S2=sum((2*colSums(weight))^2)
+  D0=(N^2-3*N+3)*S1-N*S2+3*W^2
+  D1=-1*((N^2-N)*S1-2*N*S2+6*W^2)
+  D2=-1*(2*N-(N+3)*S2+6*W^2)
+  D3=4*(N-1)*S1-2*(N+1)*S2+8*W^2
+  D4=S1-S2+W^2
+  C=(sum(y)^2-sum(y^2))^2*N*(N-1)*(N-2)*(N-3)
+  B=D3*sum(y)*sum(y^3)+D4*sum(y)^4
+  A=D0*sum(y^2)^2+D1*sum(y^4)+D2*sum(y)^2*sum(y^2)
+  VG=(A+B)/C-EG^2
+  #VG=ifelse(VG<0,.Machine$double.eps,VG)
+  sdV=sqrt(VG)
+  p.value=pnorm(G,mean=EG,sd=sdV)
+  if(p.test=="two.sided"){
+    p.value=ifelse(G<=EG,2*p.value,2*(1-p.value))
+  }else{
+    p.value=1-p.value
+  }
+  
+  result=list(General_G=G,Spot=G-EG,p.value=p.value)
+  return(result)
+}

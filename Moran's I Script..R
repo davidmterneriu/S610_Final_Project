@@ -176,13 +176,19 @@ source("Distance Data Script.R")
 
 
 
-A <- matrix(rnorm(25,10,5), 5, 5)
+A <- matrix(rnorm(100,10,5), 10, 10)
 A=A%*% t(A)
 diag(A)<-0
 
-popA=rnorm(5,100,20)
+popA=rnorm(10,100,20)
 
 dmax=max(A)
+w_mat=weight_distance_matrix(A,dmax)
+
+Getis_Ord(popA,w_mat)
+
+
+
 lambda=quantile(popA,.8)%>%as.numeric()
 
 weight_distance_matrix(A,dmax=dmax,pop=popA,lambda,"population")
