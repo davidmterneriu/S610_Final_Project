@@ -299,3 +299,58 @@ Getis_Ord=function(y,w_mat,p.test="two.sided"){
   result=list(General_G=G,Spot=G-EG,p.value=p.value)
   return(result)
 }
+
+
+Getis_Ord_local=function(y,dist_mat,dmax,p.test="two.sided"){
+  #INPUTS:
+  #y: a column vector with data to be spatially-correlated 
+  #dist_mat: distance matrix
+  #dmax: size of distance band 
+  #
+  #OUTPUTS: 
+  #local_G: nonstanardized, distance-weighted average 
+  #z.score: zscore computed from expected local_G and its variance 
+  #Checks that each geography i has at least 1 neighbor
+  #p.value: one-sided p-value (option dependent)
+  dmax_true=apply(dist_mat,1,FUN =Rfast::nth,2,descending = F )%>%max()%>%
+    round(0)
+  
+  if(dmax_true>dmax){
+    ms=paste("dmax is too small. Choose dmax greater than:",dmax_true,sep=" ")
+    return(message(ms))}
+  w_mat=weight_distance_matrix(dist_mat,dmax)
+  n=length(y)
+  local_G=numeric(n)
+  local_Gz=numeric(n)
+  local_p=numeric(n)
+  browser()
+  for (i in 1:n){
+    ind=w_mat[i,]>0
+    y_temp=y
+    y_temp[ind]<-0
+    GI=sum(w_mat[,i]*y_temp)/sum(y_temp)
+    WI=sum(w_mat[,i])
+    #Adjusting for zero weighted observations
+    N=sum(w_mat[i,]>0)+1
+    EGI=WI/N
+    ybar=mean(y_temp[y_temp>0])
+    sy=sum(y_temp^2)-ybar^2
+    VGI=(sy*WI*(N-WI))/(ybar*(N-1))
+    sdV=sqrt(VGI)
+    ZGI=sum(w_mat[,i]*y_temp)-ybar*sum(w_mat[,i]^2)
+    denom=sqrt(sy)*sqrt((N*sum(w_mat[,i])-sum(w_mat[,i])^2)/(N-1))
+    ZGI=ZGI/denom
+    local_G[i]=GI
+    local_Gz[i]=ZGI
+    p.value=pnorm(GI,mean=EGI,sd=sdV)
+    if(p.test=="two.sided"){
+      p.value=ifelse(GI<=EGI,2*p.value,2*(1-p.value))
+    }else{
+      p.value=1-p.value
+    }
+    local_p[i]=p.value
+  }
+  result=list(local_G=local_G,p.value=local_p)
+  return(result)
+  
+}

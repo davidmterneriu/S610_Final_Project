@@ -181,11 +181,12 @@ A=A%*% t(A)
 diag(A)<-0
 
 popA=rnorm(10,100,20)
+popA[1]=10^6
 
 dmax=max(A)
 w_mat=weight_distance_matrix(A,dmax)
 
-Getis_Ord(popA,w_mat)
+Getis_Ord_local(popA,A,dmax)
 
 
 
