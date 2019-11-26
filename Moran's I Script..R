@@ -81,10 +81,18 @@ ggplot(data = result_df,aes(x=Dmax,y=MoranI,color=as.factor(Year)))+geom_line()+
 
 
 #Compare with other Implementation of Moran's I 
-temp_df=test_df[test_df$Year==year_seq[1],]
 
 
-dis.mat=distance_matrix(test_df$fips,test_df$lon,test_df$lat)
+
+temp_df=test_df[test_df$state=="MN"&test_df$Year==2013,]
+
+dis.mat=distance_matrix(temp_df$fips,temp_df$lon,temp_df$lat)
+source("Distance Data Script.R")
+
+
+
+Getis_Ord_local(temp_df$OPR,dis.mat,60)
+hist(a$local_G)
 
 
 

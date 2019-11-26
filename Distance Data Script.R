@@ -33,6 +33,7 @@ distance_matrix=function(geo,long,lat){
   #long/lat: coordinates of g in degrees 
   #OUTPUT:
   #nxn square and symmetric distance matrix 
+  browser()
   master_df=cbind.data.frame(geo,long,lat)%>%
     unique.data.frame()
   geo=master_df$geo
