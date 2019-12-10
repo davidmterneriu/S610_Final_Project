@@ -84,7 +84,8 @@ weight_distance_matrix=function(dist_mat,dmax,pop,lambda,options="none for now")
     }
     w_mat=dist_mat
     w_mat[w_mat>dmax]<-0
-    w_mat=sweep(w_mat,2,dis_pop, '/')^(-1)
+    w_mat=sweep(w_mat,2,dis_pop, '/')
+    w_mat=exp(-4*(w_mat)^2)
     diag(w_mat) <- 0
     #w_mat=dis_pop
   }
@@ -248,6 +249,7 @@ LocalMoran=function(y,dist_mat,dmax,scaling=FALSE,p.test="two.sided"){
   return(result)
 }
 
+#---------------
 
 Getis_Ord=function(y,w_mat,p.test="two.sided"){
   #Variable description-----------------------------------
