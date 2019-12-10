@@ -189,10 +189,10 @@ A=A%*% t(A)
 diag(A)<-0
 
 popA=rnorm(10,100,20)
-popA[c(1,10)]=10^(9)
+#popA[c(1,10)]=10^(9)
 
 dmax=max(A)
-w_mat=weight_distance_matrix(A,dmax)
+w_mat=weight_distance_matrix(A,dmax,popA,lambda=min(popA),options="population")
 
 Getis_Ord_local(popA,A,dmax)
 
@@ -202,4 +202,7 @@ lambda=quantile(popA,.8)%>%as.numeric()
 
 weight_distance_matrix(A,dmax=dmax,pop=popA,lambda,"population")
 
-LocalMoran(popA,A,358)
+LocalMoran(popA,A,1050)
+
+
+

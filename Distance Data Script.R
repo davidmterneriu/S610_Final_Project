@@ -33,9 +33,7 @@ distance_matrix=function(geo,long,lat){
   #long/lat: coordinates of g in degrees 
   #OUTPUT:
   #nxn square and symmetric distance matrix 
-  browser()
-  master_df=cbind.data.frame(geo,long,lat)%>%
-    unique.data.frame()
+  master_df=cbind.data.frame(geo,long,lat) %>% unique.data.frame()
   geo=master_df$geo
   long=master_df$long
   lat=master_df$lat
@@ -45,6 +43,10 @@ distance_matrix=function(geo,long,lat){
     rename("long1"="long","lat1"="lat")%>%
     inner_join(master_df,by=c("Var2"="geo"))%>%
     rename("long2"="long","lat2"="lat")
+  #If geo-codes are read in as numeric data, this lead to future problems. R will try to use geo-codes as 
+  #matrix indicies as opposed to row/col names. 
+  test_df$Var1=as.character(test_df$Var1)
+  test_df$Var2=as.character(test_df$Var2)
   test_df$dist=gcd.hf(test_df$long1,test_df$lat1,test_df$long2,test_df$lat2)
   #Making the square matrix 
   myMat <- matrix(0, n, n, dimnames = list(geo, geo))
@@ -60,7 +62,6 @@ weight_distance_matrix=function(dist_mat,dmax,pop,lambda,options="none for now")
     diag(w_mat) <- 0
     w_mat[w_mat<(dmax)^(-1)]=0}
   else{
-    #browser()
     n=length(pop)
     dis_pop=numeric(n)
     for (i in 1:n ){
@@ -82,12 +83,11 @@ weight_distance_matrix=function(dist_mat,dmax,pop,lambda,options="none for now")
       }
       dis_pop[i]=k
     }
+    #browser()
     w_mat=dist_mat
     w_mat[w_mat>dmax]<-0
-    w_mat=sweep(w_mat,2,dis_pop, '/')
-    w_mat=exp(-4*(w_mat)^2)
+    w_mat=sweep(w_mat,2,dis_pop, '/')^(-1)
     diag(w_mat) <- 0
-    #w_mat=dis_pop
   }
   return(w_mat)
 }
