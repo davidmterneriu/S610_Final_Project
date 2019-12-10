@@ -194,7 +194,8 @@ popA=rnorm(10,100,20)
 dmax=max(A)
 w_mat=weight_distance_matrix(A,dmax,popA,lambda=min(popA),options="population")
 
-Getis_Ord_local(popA,A,dmax)
+
+Getis_Ord_local_z(popA,dist_mat=A,dmax=dmax)
 
 
 

@@ -359,3 +359,45 @@ Getis_Ord_local=function(y,dist_mat,dmax,p.test="two.sided"){
   return(result)
   
 }
+
+
+
+Getis_Ord_local_z=function(y,dist_mat,dmax,p.test="two.sided"){
+  #INPUTS:
+  #y: a column vector with data to be spatially-correlated 
+  #dist_mat: distance matrix
+  #dmax: size of distance band 
+  #
+  #OUTPUTS: 
+  #local_G: nonstanardized, distance-weighted average 
+  #z.score: zscore computed from expected local_G and its variance 
+  #Checks that each geography i has at least 1 neighbor
+  #p.value: one-sided p-value (option dependent)
+  dmax_true=apply(dist_mat,1,FUN =Rfast::nth,2,descending = F )%>%max()%>%
+    round(0)
+  
+  if(dmax_true>dmax){
+    ms=paste("dmax is too small. Choose dmax greater than:",dmax_true,sep=" ")
+    return(message(ms))}
+  w_mat=weight_distance_matrix(dist_mat,dmax)
+  n=length(y)
+  local_Gz=numeric(n)
+  #local_p=numeric(n)
+  #browser()
+  for (i in 1:n){
+    ind=w_mat[i,]>0
+    ind[i]<-TRUE
+    n_true=length(ind)
+    ind2=ind==FALSE
+    y_temp=y
+    y_temp[ind2]<-0
+    ybar=mean(y_temp[y_temp>0])
+    numerator=sum(w_mat[i,]*y_temp)-ybar*sum(w_mat[i,])
+    S=sqrt(sum(y_temp^2)/n_true-ybar^2)
+    S1=sqrt((n_true*sum(w_mat[i,]^2)-sum(w_mat[i,]^2))/(n_true-1))
+    local_Gz[i]=numerator/(S*S1)
+  }
+  result=data.frame(Gi=local_Gz,p.value=pnorm(abs(local_Gz)),spot=ifelse(local_Gz<0,"Cold","Hot"))
+  return(result)
+}
+
