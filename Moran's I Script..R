@@ -189,7 +189,7 @@ A=A%*% t(A)
 diag(A)<-0
 
 popA=rnorm(10,100,20)
-#popA[c(1,10)]=10^(9)
+popA[c(1,10)]=10^(9)
 
 dmax=max(A)
 w_mat=weight_distance_matrix(A,dmax,popA,lambda=min(popA),options="population")

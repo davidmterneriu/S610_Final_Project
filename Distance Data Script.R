@@ -251,7 +251,7 @@ LocalMoran=function(y,dist_mat,dmax,scaling=FALSE,p.test="two.sided"){
 
 #---------------
 
-Getis_Ord=function(y,w_mat,p.test="two.sided"){
+Getis_Ord=function(y,w_mat,p.test="one.sided"){
   #Variable description-----------------------------------
   #INPUTS:
   #y: variable of interest
@@ -362,7 +362,7 @@ Getis_Ord_local=function(y,dist_mat,dmax,p.test="two.sided"){
 
 
 
-Getis_Ord_local_z=function(y,dist_mat,dmax,p.test="two.sided"){
+Getis_Ord_local_z=function(y,dist_mat,dmax){
   #INPUTS:
   #y: a column vector with data to be spatially-correlated 
   #dist_mat: distance matrix
