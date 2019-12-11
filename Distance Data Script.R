@@ -401,3 +401,42 @@ Getis_Ord_local_z=function(y,dist_mat,dmax){
   return(result)
 }
 
+local_GC=function(y,dist_mat,dmax){
+  #INPUTS:
+  #y: a column vector with data to be spatially-correlated 
+  #dist_mat: distance matrix
+  #dmax: size of distance band 
+  #
+  #OUTPUTS: 
+  #local_G: nonstanardized, distance-weighted average 
+  #z.score: zscore computed from expected local_G and its variance 
+  #Checks that each geography i has at least 1 neighbor
+  #p.value: one-sided p-value (option dependent)
+  dmax_true=apply(dist_mat,1,FUN =Rfast::nth,2,descending = F )%>%max()%>%
+    round(0)
+  
+  if(dmax_true>dmax){
+    ms=paste("dmax is too small. Choose dmax greater than:",dmax_true,sep=" ")
+    return(message(ms))}
+  w_mat=weight_distance_matrix(dist_mat,dmax)
+  n=length(y)
+  local_C=numeric(n)
+  #local_p=numeric(n)
+  #browser()
+  for (i in 1:n){
+    ind=w_mat[i,]>0
+    ind[i]<-TRUE
+    n_true=length(ind)
+    ind2=ind==FALSE
+    y_temp=y
+    y_temp[ind2]<-0
+    ybar=mean(y_temp[y_temp>0])
+    sig=sd(y_temp[y_temp>0])
+    #Z-score standardization 
+    zi=ifelse(y_temp==0,0,(y_temp-ybar)/sig)
+    local_C[i]=1/2*sum(w_mat[i,]*(zi[i]-zi)^2)
+  }
+  result=data.frame(Local_C=local_C,p.value=pnorm(abs(local_C)))
+  return(result)
+}
+

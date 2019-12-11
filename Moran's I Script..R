@@ -16,6 +16,10 @@ county_data$fips=gsub("^[0]+","",county_data$fips)%>%as.character()
 Op_data <- read_excel("Op_data.xlsx")
 Op_data$FIPS=as.character(Op_data$FIPS)
 
+Op_data$FIPS%>%unique()%>%length()
+
+table(Op_data$Year)
+
 #Test Data
 #test_df=county_data[1:200,]
 
@@ -30,11 +34,52 @@ test_df=test_df%>%inner_join(select(Op_data,FIPS,`Opioid Prescribing Rate`,Year)
 
 test_df=test_df[order(test_df$Year),]
 
+#table(test_df$fips)
+
+test_df$fips%>%unique()%>%length()
+
+#table(test_df$Year)
+
+#Venn Diagrams 
+library(gplots)
+
+
+set1=test_df$fips[test_df$Year==2013]
+set2=test_df$fips[test_df$Year==2014]
+set3=test_df$fips[test_df$Year==2015]
+set4=test_df$fips[test_df$Year==2016]
+set5=test_df$fips[test_df$Year==2017]
+
+#vp=venn.diagram(list(`2013`=set1,`2014`=set2,`2015`=set3,`2016`=set4,`2017`=set5),fill = 2:6, alpha = 0.3, filename = NULL)
+#dev.new()
+venn(list(`2013`=set1,`2014`=set2,`2015`=set3,`2016`=set4,`2017`=set5))
+legend(title = "FIPS OPR Data Overlap")
+#grid.draw(vp)
+
+
+load("~/Desktop/Indiana/Year 3/S610/Final Project/Tests/test_data_unemployment_new.RData")
+test_data=data_to_be_cleaned
+set1=test_data$fips[test_data$Year==2013]
+set2=test_data$fips[test_data$Year==2014]
+set3=test_data$fips[test_data$Year==2015]
+set4=test_data$fips[test_data$Year==2016]
+set5=test_data$fips[test_data$Year==2017]
+venn(list(`2013`=set1,`2014`=set2,`2015`=set3,`2016`=set4,`2017`=set5))
+
+table(test_data$Year)
+
+test_data$fips%>%unlist%>%unique()%>%length()
 
 #Need to make sure that each year has the same counties
 #----Computing Local Moran's I for both unemployment and OPR 
 #test_df<- read_csv("test_data.csv")
 fips_count=table(test_df$fips)%>%as.data.frame()
+
+test1=test_df%>%inner_join(fips_count,by=c("fips"="Var1"))
+test1=test1[test1$Freq==5,]
+test1=test1[,-10]
+write.csv(test1,"OPR_test_data.csv")
+
 fips_count=fips_count$Var1[fips_count$Freq==5]%>%as.character()
 year_seq=2013:2017
 temp_df=test_df[test_df$Year==year_seq[1],]
@@ -192,6 +237,9 @@ popA=rnorm(10,100,20)
 popA[c(1,10)]=10^(9)
 
 dmax=max(A)
+
+local_GC(popA,A,dmax = dmax)
+
 w_mat=weight_distance_matrix(A,dmax,popA,lambda=min(popA),options="population")
 
 
