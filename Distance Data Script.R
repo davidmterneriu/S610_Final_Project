@@ -190,6 +190,7 @@ MoranI_pop=function(y,pop,dist_mat,dist_seq,lambda){
       counter=counter+1
     }
   }
+  return(result_df)
 }
 
 
@@ -387,7 +388,7 @@ Getis_Ord_local_z=function(y,dist_mat,dmax){
   for (i in 1:n){
     ind=w_mat[i,]>0
     ind[i]<-TRUE
-    n_true=length(ind)
+    n_true=sum(ind)
     ind2=ind==FALSE
     y_temp=y
     y_temp[ind2]<-0
@@ -397,7 +398,7 @@ Getis_Ord_local_z=function(y,dist_mat,dmax){
     S1=sqrt((n_true*sum(w_mat[i,]^2)-sum(w_mat[i,]^2))/(n_true-1))
     local_Gz[i]=numerator/(S*S1)
   }
-  result=data.frame(Gi=local_Gz,p.value=pnorm(abs(local_Gz)),spot=ifelse(local_Gz<0,"Cold","Hot"))
+  result=data.frame(Gi=local_Gz,p.value=2*pnorm(-abs(local_Gz)),spot=ifelse(local_Gz<0,"Cold","Hot"))
   return(result)
 }
 
@@ -409,9 +410,8 @@ local_GC=function(y,dist_mat,dmax){
   #
   #OUTPUTS: 
   #local_G: nonstanardized, distance-weighted average 
-  #z.score: zscore computed from expected local_G and its variance 
+  #p.value: two.sided pvalue 
   #Checks that each geography i has at least 1 neighbor
-  #p.value: one-sided p-value (option dependent)
   dmax_true=apply(dist_mat,1,FUN =Rfast::nth,2,descending = F )%>%max()%>%
     round(0)
   
@@ -421,22 +421,41 @@ local_GC=function(y,dist_mat,dmax){
   w_mat=weight_distance_matrix(dist_mat,dmax)
   n=length(y)
   local_C=numeric(n)
-  #local_p=numeric(n)
-  #browser()
+  local_Cz=numeric(n)
   for (i in 1:n){
     ind=w_mat[i,]>0
     ind[i]<-TRUE
-    n_true=length(ind)
+    n_true=sum(ind)
     ind2=ind==FALSE
     y_temp=y
     y_temp[ind2]<-0
     ybar=mean(y_temp[y_temp>0])
-    sig=sd(y_temp[y_temp>0])
-    #Z-score standardization 
-    zi=ifelse(y_temp==0,0,(y_temp-ybar)/sig)
-    local_C[i]=1/2*sum(w_mat[i,]*(zi[i]-zi)^2)
+    ysig=sd(y_temp[y_temp>0])
+    num=sum(w_mat[i,]*y_temp)-ybar*sum(w_mat[i,])
+    s=sqrt(sum(y_temp^2)/n_true-(ybar)^2)
+    denom=sqrt(1/(n_true-1)*(n_true*sum(w_mat[i,]^2)-(sum(w_mat[i,]))^2))*s
+    local_C[i]=num/denom
+    z_temp=ifelse(y_temp==0,0,(y_temp-ybar)/ysig)
+    local_Cz[i]=1/2*sum(w_mat[i,]*(z_temp[i]-z_temp)^2)
   }
-  result=data.frame(Local_C=local_C,p.value=pnorm(abs(local_C)))
+  result=data.frame(local_Cz,p.value=pnorm(abs(-local_Cz)))
   return(result)
 }
 
+
+grid_spacing=function(a,b,n,theta){
+  #Inputs: 
+  #a: start point 
+  #b: end point 
+  #n: number of grid points 
+  #theta: tuning paramter; if unity, then grid spacing is linear
+  #Output: 
+  #x: 1xn vector of grid points 
+  x=numeric(n)
+  for (i in 1:n){
+    x[i]=a+(b-a)*((i-1)/(n-1))^(theta)
+  }
+  return(x)
+  
+  #Outputs: 
+}
