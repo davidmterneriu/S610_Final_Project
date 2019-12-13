@@ -159,6 +159,25 @@ test_data=test_data_unemployment_new[test_data_unemployment_new $Year==2013,]
 #getting distance matrix
 dis_mat=distance_matrix(test_data$fips,test_data$lon,test_data$lat)
 
+d_max=max(dis_mat)
+dist_seq=grid_spacing(20,d_max,50,2)
+
+
+lambda_seq=quantile(test_data$population,c(.1,.5,.9))
+
+tic()
+pop_low=MoranI_pop(y=test_data$OPR,pop=test_data$population,dist_mat=dis_mat,dist_seq=dist_seq,lambda=lambda_seq[1])
+pop_med=MoranI_pop(y=test_data$OPR,pop=test_data$population,dist_mat=dis_mat,dist_seq=dist_seq,lambda=lambda_seq[2])
+pop_hi=MoranI_pop(y=test_data$OPR,pop=test_data$population,dist_mat=dis_mat,dist_seq=dist_seq,lambda=lambda_seq[3])
+toc()
+
+pop_master=rbind.data.frame(pop_low,pop_med,pop_hi)
+
+colnames(pop_master)=c("MoranI","p.value","population","Distance")
+ggplot(data=pop_master,aes(x=Distance,y=MoranI,color=as.factor(population)))+geom_line()+
+  theme_bw()+
+  labs(color="Population (lambda)",subtitle ="Population levels correspond to \n 10th/50th/90th percentiles",y="Moran's I")+
+  facet_zoom(xlim = c(20, 50),zoom.size=1)
 
 
 #----------Hotspots

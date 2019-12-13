@@ -88,6 +88,8 @@ weight_distance_matrix=function(dist_mat,dmax,pop,lambda,options="none for now")
     w_mat[w_mat>dmax]<-0
     w_mat=sweep(w_mat,2,dis_pop, '/')^(-1)
     diag(w_mat) <- 0
+    w_mat[is.infinite(w_mat)]<-0
+    
   }
   return(w_mat)
 }
@@ -181,6 +183,7 @@ MoranI_pop=function(y,pop,dist_mat,dist_seq,lambda){
   counter=1
   for(i in 1:n){
     for(j in 1:m){
+      #browser()
       w_mat=weight_distance_matrix(dist_mat,dist_seq[j],pop,lambda[i],options="population")
       test_m=moranI(y,w_mat,scaling = TRUE)
       result_df[counter,1]=test_m[[1]]
