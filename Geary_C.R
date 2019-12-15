@@ -1,42 +1,14 @@
-#rm(list = ls())
-
-
-
-
-setwd()
-
-
-data1 = read.csv('D://Box Sync//Fall 2019//R//Stats 610 Final Project//Medicare & Medicaid Opioid//Consolidated Data//test_data.csv',header = TRUE)
-#data2 = read.csv('D://Box Sync//Fall 2019//R//Stats 610 Final Project//Medicare & Medicaid Opioid//Consolidated Data//test_data_unemployment.csv',header = TRUE)
-
-
-################### more cleaning on the data sets  ##########################
-
-##################### share this section with David #########################
-
-library("dplyr")
-
-# Replace comma's by decimal points
-data1$lon = data1$lon %>% as.character() %>% gsub(",",".", .) %>% as.double(.)
-data1$lat = data1$lat %>% as.character() %>% gsub(",",".", .) %>% as.double(.)
-# data2$lat = data2$lat %>% as.character() %>% gsub(",",".", .) %>% as.double(.)
-# data2$lat = data2$lat %>% as.character() %>% gsub(",",".", .) %>% as.double(.)
-# data2$UN_RATE = data2$UN_RATE %>% as.character() %>% gsub(",",".", .) %>% as.double(.)
-
-
-
-################## data cleaning finished ############################
+data1 = read.csv('~/test_data_unemployment_new.csv',header = TRUE)
 
 
 ############## the following code are made by David to deal with distance ##############
-
-
+library(parallel)
+library(dplyr )
 library(readr)
 library(ggplot2)
 library(viridis)
 library(tidyverse)
 library(readxl)
-#Used for fast sorting 
 library(doBy)
 
 ## Longitude/latitude coordinates for start/endpoint in degrees (nx1 vectors)
@@ -59,9 +31,6 @@ gcd.hf <- function(long1, lat1, long2, lat2) {
 gcd.hf=Vectorize(gcd.hf)
 
 
-
-## Geographic identifier with longitude/latitude coordinates (nx1 vectors)
-## Square and symmetric distance matrix D
 distance_matrix=function(geo,long,lat){
   #Variable description-----------------------------------
   #INPUTS:
@@ -79,6 +48,10 @@ distance_matrix=function(geo,long,lat){
     rename("long1"="long","lat1"="lat")%>%
     inner_join(master_df,by=c("Var2"="geo"))%>%
     rename("long2"="long","lat2"="lat")
+  #If geo-codes are read in as numeric data, this lead to future problems. R will try to use geo-codes as 
+  #matrix indicies as opposed to row/col names. 
+  test_df$Var1=as.character(test_df$Var1)
+  test_df$Var2=as.character(test_df$Var2)
   test_df$dist=gcd.hf(test_df$long1,test_df$lat1,test_df$long2,test_df$lat2)
   #Making the square matrix 
   myMat <- matrix(0, n, n, dimnames = list(geo, geo))
@@ -87,8 +60,6 @@ distance_matrix=function(geo,long,lat){
   return(myMat)
 }
 
-
-# Input: D
 weight_distance_matrix=function(dist_mat,dmax,pop,lambda,options="none for now"){
   #dmax: max distance
   if (options!="population"){
@@ -96,7 +67,6 @@ weight_distance_matrix=function(dist_mat,dmax,pop,lambda,options="none for now")
     diag(w_mat) <- 0
     w_mat[w_mat<(dmax)^(-1)]=0}
   else{
-    #browser()
     n=length(pop)
     dis_pop=numeric(n)
     for (i in 1:n ){
@@ -118,31 +88,32 @@ weight_distance_matrix=function(dist_mat,dmax,pop,lambda,options="none for now")
       }
       dis_pop[i]=k
     }
+    #browser()
     w_mat=dist_mat
     w_mat[w_mat>dmax]<-0
     w_mat=sweep(w_mat,2,dis_pop, '/')^(-1)
     diag(w_mat) <- 0
-    #w_mat=dis_pop
   }
   return(w_mat)
 }
 
 
 
-################## Global Geary's C #############################
+
+################## Global Geary's C for Opioid Prescription Rate #############################
 
 ## input
 # "year" is 2013, 2014, 2015, 2016, 2017
 # "Dmax" is dmax in weight_distance_matrix function
 
-find_global_Geary_C = function(year, Dmax){
+find_global_Geary_C = function(year, Dmax, Lambda){
   
   year = year %>% as.integer(.)
   
   a_dist_matrix = distance_matrix(data1$fips[data1$Year == year], data1$lon[data1$Year == year] , data1$lat[data1$Year == year])
-  a_weight_dis_matrix = weight_distance_matrix(a_dist_matrix,dmax = Dmax, pop = data1$population[data1$Year == year] ,lambda = 50000 ,options="none for now")
+  a_weight_dis_matrix = weight_distance_matrix(a_dist_matrix,dmax = Dmax, pop = data1$population[data1$Year == year] ,lambda = Lambda ,options="none for now")
   N = sum( data1$Year == year )
-  data1$fips = lapply(data1$fips, function(x){if(nchar(x)==4){ paste0("0",x) } else {x} }   )
+  #data1$fips = lapply(data1$fips, function(x){if(nchar(x)==4){ paste0("0",x) } else {x} }   )
   data1$fips = data1$fips %>% as.character(.)
   x_bar = sum(data1$OPR[ data1$Year == year ] )/ N
   numerator = 0
@@ -161,156 +132,152 @@ find_global_Geary_C = function(year, Dmax){
     
   }
   
-  C = N * numerator / denominator
+  C = (N-1) * numerator / denominator
   
-  return(C)
+  # #print("Geary's C for Year", year, "is",  C, "given dmax = ", Dmax)
+  # 
+  # 
+  # ############# Tthe following part is about significant test ###########
+  # 
+  # S0 = sum(a_weight_dis_matrix)
+  # S1 = 2* S0
+  # 
+  # S2 = 0
+  # 
+  # for(i in 1:nrow(a_weight_dis_matrix)){
+  #   
+  #   S2 = S2 + ( (a_weight_dis_matrix[i, ] %*% a_weight_dis_matrix[, i] ) %>% as.integer(.) %>% "*"(.,4) )
+  #   
+  # }
+  # 
+  # 
+  # K = sum( (data1$OPR[data1$Year == year]-x_bar )^4 / N )  / (sum( (data1$OPR[data1$Year == year]-x_bar )^2 / N ) )^2
+  # 
+  # # term1 = (N-1)*S1*( N^2 -3*n + 3 -(N-1)*K  )
+  # # term2 = 0.25 * (N-1) * S2 * (N^2 + 3 * N -6- (N^2 -N+2)*K )
+  # # term3 = (N^2 -3 -K*(N-1)^2) * S0^2
+  # # term4 = N*(N-2)*(N-3)*S0^2
+  # # 
+  # # Var_C = ( term1-term2+term3 ) / term4
+  # # EC = -1/(N-1)
+  # # z_score = (C-EC)/sqrt(Var_C)
+  # 
+  # Var_C = (1/(2*(N+1)*S0^2)) * ((2*S1+S2)*(N-1)-4*S0^2)
+  # EC = -1/(N-1)
+  # z_score = (C-EC)/sqrt(Var_C)
+  # pvalue = pnorm(-abs(z_score))
+  # 
+  # # print("C is ", C)
+  # # print("Variance is ", Var_C)
+  # # print("z_score is ", z_score)
+  # # print("p-value is ", pvalue)
   
-  print("Geary's C for Year", year, "is",  C, "given dmax = ", Dmax)
+  return(c( C ))
   
 }
 
 
-######### for Year 2013 ##########
-# a_dist_matrix_2013 = distance_matrix(data1$fips[data1$Year == 2013], data1$lon[data1$Year == 2013] , data1$lat[data1$Year == 2013])
-# 
-# a_weight_dis_matrix_2013 = weight_distance_matrix(a_dist_matrix_2013,dmax = 10000, pop = data1$population[data1$Year == 2013] ,lambda = 50000 ,options="none for now")
-# 
-# # N is the number of observations for each year
-# N = sum( data1$Year == 2013 )
-# 
-# data1$fips = lapply(data1$fips, function(x){if(nchar(x)==4){ paste0("0",x) } else {x} }   )
-# data2$fips = lapply(data2$fips, function(x){if(nchar(x)==4){ paste0("0",x) } else {x} }   )
-# 
-# data1$fips = data1$fips %>% as.character(.)
-# data2$fips = data2$fips %>% as.character(.)
-# 
-# # x_bar is the meaning of the variable OPR
-# 
-# x_bar_2013 = sum(data1$OPR[ data1$Year == 2013 ] )/ N
-# x_bar_2014 = sum(data1$OPR[ data1$Year == 2014 ] )/ N
-# x_bar_2015 = sum(data1$OPR[ data1$Year == 2015 ] )/ N
-# x_bar_2016 = sum(data1$OPR[ data1$Year == 2016 ] )/ N
-# x_bar_2017 = sum(data1$OPR[ data1$Year == 2017 ] )/ N
-# 
-# 
-# # Geary's C
-# 
-# numerator = 0
-# 
-# denominator = 2 * sum(a_weight_dis_matrix_2013) * sum( (data1$OPR[data1$Year == 2013 ] - x_bar_2013 )^2 ) 
-# 
-# for (i in colnames(a_weight_dis_matrix_2013)){
-#   
-#   for (j in rownames(a_weight_dis_matrix_2013)){
-#     
-#     numerator =  numerator + a_weight_dis_matrix_2013[i, j] * 
-#       ( data1$OPR[data1$Year == 2013 & data1$fips == i] - data1$OPR[data1$Year == 2013 & data1$fips == j] )^2
-#   }
-# }
-# 
-################################ It turns out that Geary's C for year 2013 is 0.870001  #################################
-# C = N * numerator / denominator
 
+################## Global Geary's C for Unemployment Rate #############################
 
+## input
+# "year" is 2013, 2014, 2015, 2016, 2017
+# "Dmax" is dmax in weight_distance_matrix function
 
-########### Local Geary's C #############
-
-
-find_local_Geary_C = function(year, Dmax){
-  
+find_global_Geary_C_UN_RATE = function(year, Dmax, Lambda){
   
   year = year %>% as.integer(.)
   
   a_dist_matrix = distance_matrix(data1$fips[data1$Year == year], data1$lon[data1$Year == year] , data1$lat[data1$Year == year])
-  a_weight_dis_matrix = weight_distance_matrix(a_dist_matrix,dmax = Dmax, pop = data1$population[data1$Year == year] ,lambda = 50000 ,options="none for now")
-  
-  
-  local_Geary_C = data.frame("fips" = data1$fips %>% unlist(.) , "c" = rep(0, length(data1$fips[data1$Year == year])))
-
-  local_c = function(x){ 
-    
-    c = 0
-    
-    for(j in colnames(a_weight_dis_matrix)){
-      
-      c = c + a_weight_dis_matrix[x, j] * ( data1$OPR[data1$Year == year & data1$fips == x] - data1$OPR[data1$Year == year & data1$fips == j] )^2
-      
-    } 
-    
-    return(c)
-    
-    }
-  
-  local_Geary_C$c = lapply(local_Geary_C$fips, local_c )
-
-  
-  return(local_Geary_C)
-  
-  print("Local Geary's C for Year", year, "is",  local_Geary_C, "given dmax = ", Dmax)
-  
-
-}
-
-
-
-
-
-
-
-########## make a heatmap for Opioid Prescription Rate ########
-
-plot_OPR = function(){
-  
-  library(tigris)
-  options(tigris_class = "sf")
-  shape = counties(state = NULL, cb = T)
-  
+  a_weight_dis_matrix = weight_distance_matrix(a_dist_matrix,dmax = Dmax, pop = data1$population[data1$Year == year] ,lambda = Lambda ,options="none for now")
+  N = sum( data1$Year == year )
   data1$fips = lapply(data1$fips, function(x){if(nchar(x)==4){ paste0("0",x) } else {x} }   )
   data1$fips = data1$fips %>% as.character(.)
+  x_bar = sum(data1$UN_RATE[ data1$Year == year ] )/ N
+  numerator = 0
   
-  data1 = left_join(data1, shape,  by=c("fips"="GEOID")  )
+  denominator = 2 * sum(a_weight_dis_matrix) * sum( (data1$UN_RATE[data1$Year == year ] - x_bar )^2 ) 
   
-  data1 = data1[, -(12:18)]
+  for (i in colnames(a_weight_dis_matrix)){
+    
+    for (j in rownames(a_weight_dis_matrix)){
+      
+      numerator =  numerator + a_weight_dis_matrix[i, j] * 
+        ( data1$UN_RATE[data1$Year == year & data1$fips == i] - data1$UN_RATE[data1$Year == year & data1$fips == j] )^2
+      
+    }
+    
+    
+  }
   
-  data1 %>%
-    ggplot(aes(geometry=geometry, fill = OPR, color = OPR)) +
-    facet_wrap(~Year, ncol=2) +
-    geom_sf() +
-    coord_sf() +
-    scale_fill_viridis(direction=-1) +
-    scale_color_viridis(direction=-1) +
-    theme_void() +
-    theme(panel.grid.major = element_line(colour = 'transparent')) +
-    labs(title="Opioid Prescription Rate over Years") %>% return(.)
+  C = (N-1) * numerator / denominator
   
-  ## It takes about 3 minutes to finish plotting
-
+  # #print("Geary's C for Year", year, "is",  C, "given dmax = ", Dmax)
+  # 
+  # 
+  # ############# Tthe following part is about significant test ###########
+  # S0 = sum(a_weight_dis_matrix)
+  # S1 = 2* S0
+  # 
+  # S2 = 0
+  # 
+  # for(i in 1:nrow(a_weight_dis_matrix)){
+  #   
+  #   S2 = S2 + ( (a_weight_dis_matrix[i, ] %*% a_weight_dis_matrix[, i] ) %>% as.integer(.) %>% "*"(.,4) )
+  #   
+  # }
+  # 
+  # 
+  # K = sum( (data1$UN_RATE[data1$Year == year]-x_bar )^4 / N )  / (sum( (data1$UN_RATE[data1$Year == year]-x_bar )^2 / N ) )^2
+  # 
+  # # term1 = (N-1)*S1*( N^2 -3*n + 3 -(N-1)*K  )
+  # # term2 = 0.25 * (N-1) * S2 * (N^2 + 3 * N -6- (N^2 -N+2)*K )
+  # # term3 = (N^2 -3 -K*(N-1)^2) * S0^2
+  # # term4 = N*(N-2)*(N-3)*S0^2
+  # # 
+  # # Var_C = ( term1-term2+term3 ) / term4
+  # # EC = -1/(N-1)
+  # # z_score = (C-EC)/sqrt(Var_C)
+  # 
+  # Var_C = (1/(2*(N+1)*S0^2)) * ((2*S1+S2)*(N-1)-4*S0^2)
+  # EC = -1/(N-1)
+  # z_score = (C-EC)/sqrt(Var_C)
+  # pvalue = pnorm(-abs(z_score))
+  # 
+  # # print("C is ", C)
+  # # print("Variance is ", Var_C)
+  # # print("z_score is ", z_score)
+  # # print("p-value is ", pvalue)
+  
+  return(c( C ) )
+  
 }
 
-plot_OPR()
 
 
 
+# NOT WORKING WELL ########## compute and plot local Geary's C ###########
+# a_local_Geary_C = find_local_Geary_C(2013, 2000, 50000)
 
 
+########  compute and plot Geary's C for Opioid Prescription Rate with a range of dmax and lambda #########
+
+Dmax = c(200, 400, 600, 800, 1000, 3000)
+year = c(2013, 2014, 2015, 2016, 2017)
+
+GearyC_OPR = data.frame("year" = rep(year,each = 6), "Dmax" = Dmax, "C" = 0)
+
+GearyC_OPR$C = mcmapply(find_global_Geary_C, GearyC_OPR$year, GearyC_OPR$Dmax, 500000)
+
+############   compute and plot Geary's C for Unemployment Rate with a range of dmax and lambda  ###########
 
 
+Dmax = c(200, 400, 600, 800, 1000, 3000)
+year = c(2013, 2014, 2015, 2016, 2017)
 
+GearyC_UN_RATE = data.frame("year" = rep(year,each = 6), "Dmax" = Dmax, "C" = 0)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+GearyC_UN_RATE$C = mcmapply(find_global_Geary_C_UN_RATE, GearyC_UN_RATE$year, GearyC_UN_RATE$Dmax, 500000)
 
 
 
